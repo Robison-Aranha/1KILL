@@ -15,7 +15,7 @@ public class Main {
     private static HashMap<Keys, HashMap<Integer, Object>> MATCHNUMBERS = new HashMap<>();
 
     public static void main(String args[]) {
-        System.out.println(build(37));
+        System.out.println(build(245));
     }
 
     public static List<Integer> build(int num) {
@@ -72,7 +72,7 @@ public class Main {
     }
 
     public static void matchSizeNumbers() {
-        for (Integer c : MATCHNUMBERS.get(Keys.NUMBER_SQUARE).keySet()) {
+        for (Integer c : ARRAY) {
             ArrayList<Integer> cSizeList = (ArrayList<Integer>) MATCHNUMBERS.get(Keys.NUMBER_SQUARE).get(c);
             int sizeList = cSizeList.size();
             if (MATCHNUMBERS.get(Keys.SIZE_NUMBER).get(sizeList) == null) {
@@ -149,8 +149,10 @@ public class Main {
                         }
                     }
                 }
-                verifySizeNumber(selected);
-                deleteNumber(selected);
+                if (squaresc != null) {
+                    verifySizeNumber(selected);
+                    deleteNumber(selected);
+                }
                 if (Collections.frequency(listVerification, true) == 1) {
                     return;
                 }
@@ -160,13 +162,17 @@ public class Main {
         }
     }
 
+    public static Integer returnProxNum(ArrayList<Integer> proxNums) {
+        
+
+
+    }
+
     public static List<Integer> organizeArray() {
         try {
             while (true) {
                 List<Integer> keys = MATCHNUMBERS.get(Keys.SIZE_NUMBER).keySet().stream().collect(Collectors.toList());
                 Integer num = ((ArrayList<Integer>) MATCHNUMBERS.get(Keys.SIZE_NUMBER).get(Collections.min(keys))).get(0);
-                Integer senseProxNum = -1;
-                Integer senseNum = -1;
                 ArrayList<Integer> list = new ArrayList<>();
                 Integer proxNum;
                 ArrayList<Integer> squareObj = (ArrayList<Integer>) MATCHNUMBERS.get(Keys.NUMBER_SQUARE).get(num);
@@ -175,75 +181,86 @@ public class Main {
                     list.add(number);
                 }
                 Integer minSize = Collections.min(list);
-                proxNum = squareObj.stream().filter(f -> MATCHNUMBERS.get(Keys.NUMBER_SIZE).get(f) == minSize).collect(Collectors.toList()).get(0);
-                ArrayList<Integer> sequenceProxNum = new ArrayList<>();
-                ArrayList<Integer> sequenceNum = new ArrayList<>();
-                ArrayList<Integer> newSequence = new ArrayList<>();
-                Boolean inFinalAmountNum = true;
-                Boolean inFinalAmountProxNum = true;
-                for (int i = 0; i < 2; i++) {
-                    Integer sense = -1;
-                    ArrayList<Integer> sequence = new ArrayList<>();
-                    Boolean inFinalAmout = true;
-                    Integer number = i == 0 ? num : proxNum;
-                    if (FINAL_AMOUNT.get(Keys.DIREITA).get(number) != null) {
-                        sense = -1;
-                        sequence = FINAL_AMOUNT.get(Keys.DIREITA).get(number);
-                    } else if (FINAL_AMOUNT.get(Keys.ESQUERDA).get(number) != null) {
-                        sense = 0;
-                        sequence = FINAL_AMOUNT.get(Keys.ESQUERDA).get(number);
-                    } else {
-                        inFinalAmout = false;
-                        sequence.add(number);
-                    }
-                    if (i == 0) {
-                        senseNum = sense;
-                        sequenceNum = sequence;
-                        inFinalAmountNum = inFinalAmout;
-                    } else {
-                        senseProxNum = sense;
-                        sequenceProxNum = sequence;
-                        inFinalAmountProxNum = inFinalAmout;
-                    }
-                }
-                List<Boolean> listVerification = Arrays.asList(inFinalAmountNum, inFinalAmountProxNum);
-                for (int i = 0; i < listVerification.size(); i++) {
-                    Boolean value = listVerification.get(i);
-                    if (value) {
-                        Boolean verificar = null;
-                        Integer sense = i == 0 ? senseNum : senseProxNum;
-                        for (int k = 0; k < 2; k++) {
-                            verificar = k != 0 ? !verificar : sense == -1 ? true : false;
-                            FINAL_AMOUNT.get(verificar ? Keys.DIREITA : Keys.ESQUERDA).remove(verificar ? i == 1 ? sequenceProxNum.get(sequenceProxNum.size() - 1) : sequenceNum.get(sequenceNum.size() - 1) : i == 1 ? sequenceProxNum.get(0) : sequenceNum.get(0));
-                        }
-                    }
-                }
-                if (senseNum == senseProxNum) {
-                    Collections.reverse(sequenceProxNum);
-                }
-                Stream streamNewSequence = senseNum == -1 ? Stream.concat(sequenceNum.stream(), sequenceProxNum.stream()) : Stream.concat(sequenceProxNum.stream(), sequenceNum.stream());
-                newSequence = (ArrayList<Integer>) streamNewSequence.collect(Collectors.toList());
-                if (newSequence.size() == NUM) {
-                    return newSequence;
-                }
-                Integer newSequenceDireita = newSequence.get(newSequence.size() - 1);
-                Integer newSequenceEsquerda = newSequence.get(0);
-                FINAL_AMOUNT.get(Keys.DIREITA).put(newSequenceDireita, newSequence);
-                FINAL_AMOUNT.get(Keys.ESQUERDA).put(newSequenceEsquerda, newSequence);
-                removeNumbers(num, proxNum);
-                ArrayList<Integer> squareObjDireita = (ArrayList<Integer>) MATCHNUMBERS.get(Keys.NUMBER_SQUARE).get(newSequenceDireita);
-                ArrayList<Integer> squareObjEsquerda = (ArrayList<Integer>) MATCHNUMBERS.get(Keys.NUMBER_SQUARE).get(newSequenceEsquerda);
-                squareObjDireita = squareObjDireita == null ? new ArrayList<>() : squareObjDireita;
-                squareObjEsquerda = squareObjEsquerda == null ? new ArrayList<>() : squareObjEsquerda;
-                if (squareObjDireita.contains(newSequenceEsquerda)) {
-                    deleteNumberAssociations(newSequenceDireita, newSequenceEsquerda);
-                }
-                if (squareObjEsquerda.contains(newSequenceDireita)) {
-                    deleteNumberAssociations(newSequenceEsquerda, newSequenceDireita);
+                ArrayList<Integer> proxNumSelecteds = (ArrayList<Integer>) squareObj.stream().filter(f -> MATCHNUMBERS.get(Keys.NUMBER_SIZE).get(f) == minSize).collect(Collectors.toList());
+                proxNum = returnProxNum(proxNumSelecteds);
+                ArrayList<Integer> result = updateCollection(num, proxNum);
+                if (result != null) {
+                    return result;
                 }
             }
         } catch (Exception e) {
             return null;
         }
+    }
+
+    public static ArrayList<Integer> updateCollection(Integer num, Integer proxNum) {
+        Integer senseProxNum = -1;
+        Integer senseNum = -1;
+        ArrayList<Integer> sequenceProxNum = new ArrayList<>();
+        ArrayList<Integer> sequenceNum = new ArrayList<>();
+        ArrayList<Integer> newSequence = new ArrayList<>();
+        Boolean inFinalAmountNum = true;
+        Boolean inFinalAmountProxNum = true;
+        for (int i = 0; i < 2; i++) {
+            Integer sense = -1;
+            ArrayList<Integer> sequence = new ArrayList<>();
+            Boolean inFinalAmout = true;
+            Integer number = i == 0 ? num : proxNum;
+            if (FINAL_AMOUNT.get(Keys.DIREITA).get(number) != null) {
+                sense = -1;
+                sequence = FINAL_AMOUNT.get(Keys.DIREITA).get(number);
+            } else if (FINAL_AMOUNT.get(Keys.ESQUERDA).get(number) != null) {
+                sense = 0;
+                sequence = FINAL_AMOUNT.get(Keys.ESQUERDA).get(number);
+            } else {
+                inFinalAmout = false;
+                sequence.add(number);
+            }
+            if (i == 0) {
+                senseNum = sense;
+                sequenceNum = sequence;
+                inFinalAmountNum = inFinalAmout;
+            } else {
+                senseProxNum = sense;
+                sequenceProxNum = sequence;
+                inFinalAmountProxNum = inFinalAmout;
+            }
+        }
+        List<Boolean> listVerification = Arrays.asList(inFinalAmountNum, inFinalAmountProxNum);
+        for (int i = 0; i < listVerification.size(); i++) {
+            Boolean value = listVerification.get(i);
+            if (value) {
+                Boolean verificar = null;
+                Integer sense = i == 0 ? senseNum : senseProxNum;
+                for (int k = 0; k < 2; k++) {
+                    verificar = k != 0 ? !verificar : sense == -1 ? true : false;
+                    FINAL_AMOUNT.get(verificar ? Keys.DIREITA : Keys.ESQUERDA).remove(verificar ? i == 1 ? sequenceProxNum.get(sequenceProxNum.size() - 1) : sequenceNum.get(sequenceNum.size() - 1) : i == 1 ? sequenceProxNum.get(0) : sequenceNum.get(0));
+                }
+            }
+        }
+        if (senseNum == senseProxNum) {
+            Collections.reverse(sequenceProxNum);
+        }
+        Stream streamNewSequence = senseNum == -1 ? Stream.concat(sequenceNum.stream(), sequenceProxNum.stream()) : Stream.concat(sequenceProxNum.stream(), sequenceNum.stream());
+        newSequence = (ArrayList<Integer>) streamNewSequence.collect(Collectors.toList());
+        if (newSequence.size() == NUM) {
+            return newSequence;
+        }
+        Integer newSequenceDireita = newSequence.get(newSequence.size() - 1);
+        Integer newSequenceEsquerda = newSequence.get(0);
+        FINAL_AMOUNT.get(Keys.DIREITA).put(newSequenceDireita, newSequence);
+        FINAL_AMOUNT.get(Keys.ESQUERDA).put(newSequenceEsquerda, newSequence);
+        removeNumbers(num, proxNum);
+        ArrayList<Integer> squareObjDireita = (ArrayList<Integer>) MATCHNUMBERS.get(Keys.NUMBER_SQUARE).get(newSequenceDireita);
+        ArrayList<Integer> squareObjEsquerda = (ArrayList<Integer>) MATCHNUMBERS.get(Keys.NUMBER_SQUARE).get(newSequenceEsquerda);
+        squareObjDireita = squareObjDireita == null ? new ArrayList<>() : squareObjDireita;
+        squareObjEsquerda = squareObjEsquerda == null ? new ArrayList<>() : squareObjEsquerda;
+        if (squareObjDireita.contains(newSequenceEsquerda)) {
+            deleteNumberAssociations(newSequenceDireita, newSequenceEsquerda);
+        }
+        if (squareObjEsquerda.contains(newSequenceDireita)) {
+            deleteNumberAssociations(newSequenceEsquerda, newSequenceDireita);
+        }
+        return null;
     }
 }
