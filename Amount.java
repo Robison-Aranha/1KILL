@@ -18,6 +18,17 @@ public class Amount {
 
     public Amount(Integer num) {
         this.NUM = num;
+        this.MATCHNUMBERS.put(Keys.NUMBER_SQUARE, new HashMap<>());
+        this.MATCHNUMBERS.put(Keys.NUMBER_SIZE, new HashMap<>());
+        this.MATCHNUMBERS.put(Keys.SIZE_NUMBER, new HashMap<>());
+        this.FINAL_AMOUNT.put(Keys.DIREITA, new HashMap<>());
+        this.FINAL_AMOUNT.put(Keys.ESQUERDA, new HashMap<>());
+    }
+
+    public Amount(Integer num, HashMap<Keys, HashMap<Integer, Object>> matchNumbers, HashMap<Keys, HashMap<Integer, ArrayList<Integer>>> finalAmount) {
+        this.NUM = num;
+        this.MATCHNUMBERS = (HashMap<Keys, HashMap<Integer, Object>>) matchNumbers.entrySet().stream().collect(Collectors.toMap(e -> e.getKey(), e -> new HashMap<Integer, Object>(e.getValue())));
+        this.FINAL_AMOUNT = (HashMap<Keys, HashMap<Integer, ArrayList<Integer>>>) finalAmount.entrySet().stream().collect(Collectors.toMap(e -> e.getKey(), e -> new HashMap<Integer, ArrayList<Integer>>(e.getValue())));;
     }
 
     public void generateArray() {
@@ -150,15 +161,13 @@ public class Amount {
 
     public ArrayList<Integer> returnResult(Integer num, ArrayList<Integer> proxNums) {
         for (Integer c : proxNums) {
-            Amount tmpAmount = new Amount(this.NUM);
-            tmpAmount.FINAL_AMOUNT = (HashMap<Keys, HashMap<Integer, ArrayList<Integer>>>) this.FINAL_AMOUNT.clone();
-            tmpAmount.MATCHNUMBERS = (HashMap<Keys, HashMap<Integer, Object>>) this.MATCHNUMBERS.clone();
+            Amount tmpAmount = new Amount(this.NUM, this.MATCHNUMBERS, this.FINAL_AMOUNT);
             ArrayList<Integer> result = tmpAmount.updateCollection(num, c);
             if (result != null) {
                 return result;
             }
         }
-        updateCollection(num, proxNums.get(0));
+        this.updateCollection(num, proxNums.get(0));
         return null;
     }
 
