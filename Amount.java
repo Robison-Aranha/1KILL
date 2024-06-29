@@ -3,7 +3,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 
-public class Amount {
+public class Amount  {
 
     private Integer NUM;
     private ArrayList<Integer> ARRAY = new ArrayList<>();
@@ -27,8 +27,29 @@ public class Amount {
 
     public Amount(Integer num, HashMap<Keys, HashMap<Integer, Object>> matchNumbers, HashMap<Keys, HashMap<Integer, ArrayList<Integer>>> finalAmount) {
         this.NUM = num;
-        this.MATCHNUMBERS = (HashMap<Keys, HashMap<Integer, Object>>) matchNumbers.entrySet().stream().collect(Collectors.toMap(e -> e.getKey(), e -> new HashMap<Integer, Object>(e.getValue())));
-        this.FINAL_AMOUNT = (HashMap<Keys, HashMap<Integer, ArrayList<Integer>>>) finalAmount.entrySet().stream().collect(Collectors.toMap(e -> e.getKey(), e -> new HashMap<Integer, ArrayList<Integer>>(e.getValue())));;
+        for (HashMap.Entry<Keys, HashMap<Integer, Object>> entry : matchNumbers.entrySet()) { this.MATCHNUMBERS.put(entry.getKey(), copyMatchNumber(entry.getValue()));}
+        for (HashMap.Entry<Keys, HashMap<Integer, ArrayList<Integer>>> entry : finalAmount.entrySet()) { this.FINAL_AMOUNT.put(entry.getKey(), copyFinalAmount(entry.getValue()));}
+    }
+
+    public HashMap<Integer, Object> copyMatchNumber(HashMap<Integer, Object> hash) {
+        HashMap<Integer, Object> copy = new HashMap<>();
+        for (HashMap.Entry<Integer, Object> entry : hash.entrySet()) {
+            Integer tmpI = null;
+            ArrayList<Integer> tmpA = null;
+            try {
+                tmpI = new Integer((Integer) entry.getValue());
+            } catch (Exception e) {
+                tmpA = new ArrayList<>((ArrayList) entry.getValue());
+            }
+            copy.put(entry.getKey(),  tmpI != null ? tmpI : tmpA);
+        }
+        return copy;
+    }
+
+    public HashMap<Integer, ArrayList<Integer>> copyFinalAmount(HashMap<Integer, ArrayList<Integer>> hash) {
+        HashMap<Integer, ArrayList<Integer>> copy = new HashMap<>();
+        for (HashMap.Entry<Integer, ArrayList<Integer>> entry : hash.entrySet()) { copy.put(entry.getKey(), new ArrayList<>(entry.getValue()));}
+        return copy;
     }
 
     public void generateArray() {
@@ -116,7 +137,6 @@ public class Amount {
         this.MATCHNUMBERS.get(Keys.NUMBER_SIZE).remove(num);
         this.MATCHNUMBERS.get(Keys.NUMBER_SQUARE).remove(num);
         DELETADOS.add(num);
-
     }
 
     public void removeNumbers(Integer num, Integer proxNum) {
