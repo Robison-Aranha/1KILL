@@ -7,11 +7,14 @@ public class Main {
     enum KeysError {
         REMOVE_NUMBERS_ERROR, EDGE_NUMBERS_ERROR
     }
-    
+
     public static void main(String args[]) {
-        System.out.println(organizeArray(48));
+        long tempoInicial = System.currentTimeMillis();
+        System.out.println(organizeArray(55));
+        long tempoFinal = System.currentTimeMillis();
+        System.out.println(tempoFinal - tempoInicial);
     }
-    
+
     public static List<Integer> organizeArray(Integer number) {
         Amount amount = new Amount(number);
         amount.findSquares();
@@ -20,24 +23,22 @@ public class Main {
             Integer num = amount.findNextNum();
             Integer proxNum = amount.findProxNum(num);
             if (num != null && proxNum != null) {
-            	Amount tmp = new Amount(amount);
-            	tmp.updateCollection(num, proxNum);
-	            if (!tmp.verifyDeletedNumbers()) { 
-	                amount.realocateNumbers(num);
-	            } else if (!tmp.verifyEdgeNumbers()) {
-	               num = num;
-	            } else {
-	            	amount = new Amount(tmp);
-	            }
-	            if (amount.FINAL_ARRAY != null) {
-	                return amount.FINAL_ARRAY;
-	            }
+                if (!amount.verifyDeletedNumbers(num, proxNum)) {
+                    amount.realocateNumber(num);
+                } else if (!amount.verifyMatchnumbers(num, proxNum)) {
+                    amount.removeNumbers(num, proxNum);
+                } else {
+                    amount.updateCollection(num, proxNum);
+                }
             } else {
-            	return null;
+                return null;
+            }
+            if (amount.FINAL_ARRAY != null) {
+                return amount.FINAL_ARRAY;
             }
         }
     }
-    
+
     public static class Amount  {
 
         private Integer NUM;
@@ -45,11 +46,13 @@ public class Main {
         private List<Integer> SQUARES = new ArrayList<>();
         private HashMap<KeysMatchNumbers, HashMap<Integer, Object>> MATCHNUMBERS = new HashMap<>();
         private List<Integer> FINAL_ARRAY = null;
-        private List<Integer> DELETED = new ArrayList<>();
-        private HashMap<Integer, Amount> QT_EDGE_NUMBERS = new HashMap<>();
 
         enum KeysMatchNumbers {
-            NUMBER_SQUARE, NUMBER_SIZE, SIZE_NUMBER, DIREITA, ESQUERDA, IS_IN_AMOUNT
+            NUMBER_SQUARE, NUMBER_SIZE, SIZE_NUMBER, DIREITA, ESQUERDA, IS_IN_AMOUNT, NEXT_NUMBER
+        }
+
+        enum TrackTypes {
+            MULTIPLE_WAYS, NO_MORE_WAYS
         }
 
         public Amount(Integer num) {
@@ -60,40 +63,6 @@ public class Main {
             this.MATCHNUMBERS.put(KeysMatchNumbers.IS_IN_AMOUNT, new HashMap<>());
             this.AMOUNT.put(KeysMatchNumbers.DIREITA, new HashMap<>());
             this.AMOUNT.put(KeysMatchNumbers.ESQUERDA, new HashMap<>());
-        }
-
-        public Amount(Amount amount) {
-            this.NUM = amount.NUM;
-            this.SQUARES = amount.SQUARES;
-            for (HashMap.Entry<KeysMatchNumbers, HashMap<Integer, Object>> entry : amount.MATCHNUMBERS.entrySet()) { this.MATCHNUMBERS.put(entry.getKey(), copyMatchNumber(entry.getValue()));}
-            for (Map.Entry<KeysMatchNumbers, HashMap<Integer, List<Integer>>> entry : amount.AMOUNT.entrySet()) { this.AMOUNT.put(entry.getKey(), copyFinalAmount(entry.getValue()));}
-            this.FINAL_ARRAY = amount.FINAL_ARRAY;
-        }
-
-		@SuppressWarnings({ "removal", "unchecked" })
-		public HashMap<Integer, Object> copyMatchNumber(HashMap<Integer, Object> hash) {
-            HashMap<Integer, Object> copy = new HashMap<>();
-            for (HashMap.Entry<Integer, Object> entry : hash.entrySet()) {
-                Object tmp = entry.getValue();
-                try {
-                    tmp = new Integer((Integer) tmp);
-                } catch (Exception e1) {
-                	try {
-                		tmp = new ArrayList<Integer>((ArrayList<Integer>) tmp);
-                	}
-                	catch (Exception e2) {
-                		tmp = new Boolean((Boolean) tmp);
-                	}
-                }
-                copy.put(entry.getKey(),  tmp);
-            }
-            return copy;
-        }
-
-        public HashMap<Integer, List<Integer>> copyFinalAmount(HashMap<Integer, List<Integer>> hash) {
-            HashMap<Integer, List<Integer>> copy = new HashMap<>();
-            for (HashMap.Entry<Integer, List<Integer>> entry : hash.entrySet()) { copy.put(entry.getKey(), new ArrayList<>(entry.getValue()));}
-            return copy;
         }
 
         public void findSquares() {
@@ -107,7 +76,7 @@ public class Main {
                 count++;
             }
         }
-        	
+
         public Boolean isSquare(Integer num, Integer proxNum) {
             if (num > proxNum) {
                 int number = num - proxNum;
@@ -118,8 +87,7 @@ public class Main {
             return false;
         }
 
-        @SuppressWarnings("unchecked")
-		public void matchNumbers() {
+        public void matchNumbers() {
             for (int c = this.NUM; c > 0; c--) {
                 List<Integer> list = new ArrayList<>();
                 for (Integer i : this.SQUARES) {
@@ -145,8 +113,7 @@ public class Main {
             }
         }
 
-        @SuppressWarnings("unchecked")
-		public void verifySizeNumber(Integer num) {
+        public void verifySizeNumber(Integer num) {
             int sizeList = (int) this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SIZE).get(num);
             List<Integer> sizeListObj = (ArrayList<Integer>) this.MATCHNUMBERS.get(KeysMatchNumbers.SIZE_NUMBER).get(sizeList);
             sizeListObj.remove(num);
@@ -158,7 +125,6 @@ public class Main {
             this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SIZE).put(num, sizeList - 1);
         }
 
-        @SuppressWarnings("unchecked")
         public void deleteNumberAssociations(Integer num, Integer proxNum) {
             verifySizeNumber(num);
             int sizeList = (int) this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SIZE).get(num);
@@ -166,7 +132,7 @@ public class Main {
                 if (this.MATCHNUMBERS.get(KeysMatchNumbers.SIZE_NUMBER).get(sizeList) == null) {
                     this.MATCHNUMBERS.get(KeysMatchNumbers.SIZE_NUMBER).put(sizeList, new ArrayList<Integer>());
                 }
-				List<Integer> sizeObj = (ArrayList<Integer>) this.MATCHNUMBERS.get(KeysMatchNumbers.SIZE_NUMBER).get(sizeList);
+                List<Integer> sizeObj = (ArrayList<Integer>) this.MATCHNUMBERS.get(KeysMatchNumbers.SIZE_NUMBER).get(sizeList);
                 sizeObj.add(num);
                 this.MATCHNUMBERS.get(KeysMatchNumbers.SIZE_NUMBER).put(sizeList, sizeObj);
                 List<Integer> squareObj = (ArrayList<Integer>) this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SQUARE).get(num);
@@ -180,17 +146,16 @@ public class Main {
         public void deleteNumber(Integer num) {
             this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SIZE).remove(num);
             this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SQUARE).remove(num);
-            this.DELETED.add(num);
         }
 
-        @SuppressWarnings("unchecked")
-		public void removeNumbers(Integer num, Integer proxNum) {
+        public void removeNumbers(Integer num, Integer proxNum) {
             List<Integer> list = Arrays.asList(num, proxNum);
             List<Boolean> listVerification = new ArrayList<>();
             for (Integer c : list) {
                 List<Integer> direita = this.AMOUNT.get(KeysMatchNumbers.DIREITA).get(c);
                 List<Integer> esquerda = this.AMOUNT.get(KeysMatchNumbers.ESQUERDA).get(c);
-                if (direita == null && esquerda == null) {
+                Boolean isInAmount = (Boolean) this.MATCHNUMBERS.get(KeysMatchNumbers.IS_IN_AMOUNT).get(c);
+                if (direita == null && esquerda == null && isInAmount) {
                     listVerification.add(true);
                 } else {
                     listVerification.add(false);
@@ -223,114 +188,169 @@ public class Main {
                 }
             }
         }
-        
-        @SuppressWarnings("unchecked")
+
         public Integer findNextNum() {
             List<Integer> keys = this.MATCHNUMBERS.get(KeysMatchNumbers.SIZE_NUMBER).keySet().stream().collect(Collectors.toList());
             if (keys.size() > 0) {
-				Integer num = ((ArrayList<Integer>) this.MATCHNUMBERS.get(KeysMatchNumbers.SIZE_NUMBER).get(Collections.min(keys))).get(0);
+                Integer num = ((ArrayList<Integer>) this.MATCHNUMBERS.get(KeysMatchNumbers.SIZE_NUMBER).get(Collections.min(keys))).get(0);
                 return num;
             }
             return null;
         }
-        
-        @SuppressWarnings("unchecked")
-		public Integer findProxNum(Integer num) {
-        	 Object obj = this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SQUARE).get(num);
-             if (obj != null) {
- 				List<Integer> squareObj = (ArrayList<Integer>) obj;
- 				List<Integer> listSizes = new ArrayList<Integer>();
- 				for (Integer c : squareObj) {
- 					Integer size = (Integer) this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SIZE).get(c);
- 					listSizes.add(size);
- 				}
- 				Integer minSize = Collections.min(listSizes);
- 				Integer proxNum = squareObj.stream().filter(s -> ((Integer) this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SIZE).get(s)) == minSize).collect(Collectors.toList()).get(0);
- 				return proxNum;
-             }
-             return null;
+
+        public Integer findProxNum(Integer num) {
+            Object obj = this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SQUARE).get(num);
+            if (obj != null) {
+                List<Integer> squareObj = (ArrayList<Integer>) obj;
+                List<Integer> listSizes = new ArrayList<Integer>();
+                for (Integer c : squareObj) {
+                    Integer size = (Integer) this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SIZE).get(c);
+                    listSizes.add(size);
+                }
+                Integer minSize = Collections.min(listSizes);
+                List<Integer> proxNums = squareObj.stream().filter(s -> (int) this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SIZE).get(s) == minSize).collect(Collectors.toList());
+                return proxNums.get(0);
+            }
+            return null;
         }
-        
-        @SuppressWarnings("unchecked")
-		public void realocateNumbers(Integer num) {
-        	Integer numberSize = (Integer) this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SIZE).get(num);
-        	List<Integer> listNumberSize = (List<Integer>) this.MATCHNUMBERS.get(KeysMatchNumbers.SIZE_NUMBER).get(numberSize);
-        	listNumberSize.remove(num);
-        	listNumberSize.add(num);
-        	this.MATCHNUMBERS.get(KeysMatchNumbers.SIZE_NUMBER).put(numberSize, listNumberSize);
+
+        public void realocateNumber(Integer num) {
+            Integer sizeNum = (Integer) this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SIZE).get(num);
+            List<Integer> sizeList = (List<Integer>) this.MATCHNUMBERS.get(KeysMatchNumbers.SIZE_NUMBER).get(sizeNum);
+            sizeList.remove(num);
+            sizeList.add(num);
+            this.MATCHNUMBERS.get(KeysMatchNumbers.SIZE_NUMBER).put(sizeNum, sizeList);
         }
-        
-        @SuppressWarnings("unchecked")
-		public Boolean verifyEdgeNumbers() {
-        	List<Integer> sizeList = (List<Integer>) this.MATCHNUMBERS.get(KeysMatchNumbers.SIZE_NUMBER).get(1);
-        	if (sizeList != null) {
-	        	for (Integer num : sizeList) {
-	        		Integer number = num;
-	        		Integer anteriorNumber = 0;
-	        		while (true) {
-		        		Boolean isInAmount = (Boolean) this.MATCHNUMBERS.get(KeysMatchNumbers.IS_IN_AMOUNT).get(number);
-		        		List<Integer> track = new ArrayList<Integer>();
-		        		if (!isInAmount) {
-			        		List<Integer> square = (List<Integer>) this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SQUARE).get(number);
-			        		square = (List<Integer>) square.stream().filter(s -> s != anteriorNumber);
-			        		if (square.size() == 1) {
-			        			Integer nextNumber = square.get(0);
-			        			List<Object> list = this.getAmountRefered(nextNumber);
-			        			anteriorNumber = number;
-			        			if (list != null) {
-				        			Integer side = (Integer) list.get(0);
-				        			List<Integer> amountNextNumber = (List<Integer>) list.get(1);
-				        			if (side == -1) {
-				        				Collections.reverse(amountNextNumber);
-				        			}
-				        			track.addAll(amountNextNumber);
-				        			number = amountNextNumber.get(amountNextNumber.size() - 1);
-			        			} else {
-			        				track.add(nextNumber);
-			        				number = nextNumber;
-			        			}
-			        		}
-		        		}
-	        		}
-	        	}
-        	}
-        	return true;
+
+        public Boolean verifyMatchnumbers(Integer num, Integer proxNum) {
+            HashMap<Integer, HashMap<Integer, List<Integer>>> generations = this.returnGenerations(num, proxNum);
+            for (Integer number : generations.keySet()) {
+                HashMap<Integer, List<Integer>> hash = (HashMap<Integer, List<Integer>>) generations.get(number);
+                HashMap<Integer, List<TrackTypes>> tracks = new HashMap<>();
+                for (Integer hashKey : hash.keySet()) {
+                    if (hashKey == 9 || hash.get(hashKey).contains(9)) {
+                        System.out.println(this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SQUARE).get(9));
+                        System.out.println("");
+                    }
+                    List<TrackTypes> arrayc = new ArrayList<>();
+                    TrackTypes trackType = this.getTrack(hashKey, number);
+                    arrayc.add(trackType);
+                    tracks.put(hashKey, arrayc);
+                    for (Integer c : hash.get(hashKey)) {
+                        List<TrackTypes> arrayh = new ArrayList<>();
+                        TrackTypes trackTypeDerivateds = this.getTrack(c, hashKey);
+                        arrayh.add(trackTypeDerivateds);
+                        tracks.put(c, arrayh);
+                    }
+                }
+                Boolean verift = false;
+                for (Integer trackKey : tracks.keySet()) {
+                    if (tracks.get(trackKey).contains(TrackTypes.NO_MORE_WAYS)) {
+                        verift = true;
+                    }
+                }
+                if (verift) {
+                    num = num;
+                }
+                System.out.println("num: " + num);
+                System.out.println("proxNum: " + proxNum);
+                System.out.println("track: " + tracks);
+                System.out.println("-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-");
+            }
+            return true;
         }
-        
-        public List<Object> getAmountRefered(Integer num) {
-        	for (List<Integer> amount : this.getAmounts()) {
-        		if (amount.indexOf(num) != -1) {
-        			List<Object> list = new ArrayList<>();
-        			list.add(amount.indexOf(num) == 0 ? 0 : -1);
-        			list.add(amount);
-        			return list;
-        		}
-        	}
-        	return null;
+
+        public TrackTypes getTrack(Integer num, Integer anteriorNumber) {
+            Integer currentNumber = num;
+            List<Integer> numbersToAvoid = new ArrayList<>();
+            numbersToAvoid.add(currentNumber);
+            numbersToAvoid.add(anteriorNumber);
+            TrackTypes trackType = null;
+            while (true) {
+                List<Integer> square = (List<Integer>) this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SQUARE).get(currentNumber);
+                if (square != null) {
+                    square = square.stream().filter(n -> !numbersToAvoid.contains(n)).collect(Collectors.toList());
+                    if (square.size() == 1) {
+                        Integer number = square.get(0);
+                        Integer amountNumberRefered = this.getContrariorNumberInAmount(number);
+                        if (amountNumberRefered != null) {
+                            numbersToAvoid.add(number);
+                            currentNumber = amountNumberRefered;
+                        } else {
+                            currentNumber = number;
+                        }
+                        numbersToAvoid.add(currentNumber);
+                        continue;
+                    } else if (square.size() == 0) {
+                        trackType = TrackTypes.NO_MORE_WAYS;
+                    } else {
+                        trackType = TrackTypes.MULTIPLE_WAYS;
+                    }
+                } else {
+                    trackType = TrackTypes.NO_MORE_WAYS;
+                }
+                break;
+            }
+            return trackType;
         }
-        
-        public Boolean verifyDeletedNumbers() {
-        	for (Integer c : this.DELETED) {
-        		Boolean verificator = false;
-        		for (List<Integer> amount : this.getAmounts()) {
-        			if (amount.indexOf(c) != -1) {
-        				verificator = true;
-        				break;
-        			}
-        		}
-        		if (!verificator) {
-        			return false;
-        		}
-        	}
-        	return true;
+
+        public Integer getContrariorNumberInAmount(Integer num) {
+            for (List<Integer> amount : this.getAmounts()) {
+                Integer index = amount.indexOf(num);
+                if (index == 0 || index == amount.size() - 1) {
+                    index = index == 0 ? amount.size() - 1 : 0;
+                    return amount.get(index);
+                }
+            }
+            return null;
         }
-        
+
+        public Boolean verifyDeletedNumbers(Integer num, Integer proxNum) {
+            HashMap<Integer, HashMap<Integer, List<Integer>>> generations = this.returnGenerations(num, proxNum);
+            for (Integer number : generations.keySet()) {
+                HashMap<Integer, List<Integer>> hash = ( HashMap<Integer, List<Integer>>) generations.get(number);
+                for (Integer key : hash.keySet()) {
+                    if (hash.get(key).size() == 0) {
+                        if ((Boolean) this.MATCHNUMBERS.get(KeysMatchNumbers.IS_IN_AMOUNT).get(key) == false) {
+                            return false;
+                        }
+                    }
+                }
+            }
+            return true;
+        }
+
+        public HashMap<Integer, HashMap<Integer, List<Integer>>> returnGenerations(Integer num, Integer proxNum) {
+            List<Integer> numSquare = (ArrayList<Integer>) this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SQUARE).get(num);
+            numSquare = numSquare.stream().filter(n -> n != proxNum).collect(Collectors.toList());
+            List<Integer> proxNumSquare = (ArrayList<Integer>)this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SQUARE).get(proxNum);
+            proxNumSquare = proxNumSquare.stream().filter(n -> n != num).collect(Collectors.toList());
+            List<List<Integer>> firstGeneratioNumbers = Arrays.asList(numSquare, proxNumSquare);
+            HashMap<Integer, HashMap<Integer, List<Integer>>> secondGenerationNumbers = new HashMap<>();
+            for (int c = 0; c < 2 ; c++) {
+                Integer number = c == 0 ? num : proxNum;
+                List<Integer> squares = firstGeneratioNumbers.get(c);
+                HashMap<Integer, List<Integer>> hash = new HashMap<>();
+                for (Integer i : squares) {
+                    List<Integer> squarei = (List<Integer>) this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SQUARE).get(i);
+                    squarei = squarei.stream().filter(n -> {
+                        if (n == i || n == num || n == proxNum) {
+                            return false;
+                        }
+                        return true;
+                    }).collect(Collectors.toList());
+                    hash.put(i, squarei);
+                }
+                secondGenerationNumbers.put(number, hash);
+            }
+            return secondGenerationNumbers;
+        }
+
         public List<List<Integer>> getAmounts() {
-        	return (List<List<Integer>>) this.AMOUNT.get(KeysMatchNumbers.DIREITA).values().stream().collect(Collectors.toList());
+            return (List<List<Integer>>) this.AMOUNT.get(KeysMatchNumbers.DIREITA).values().stream().collect(Collectors.toList());
         }
-      
-        @SuppressWarnings({ "unchecked", "rawtypes" })
-		public void updateCollection(Integer num, Integer proxNum) {
+
+        public void updateCollection(Integer num, Integer proxNum) {
             Integer senseProxNum = -1;
             Integer senseNum = -1;
             List<Integer> sequenceProxNum = new ArrayList<>();
