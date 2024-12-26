@@ -23,7 +23,7 @@ public class Main {
             Integer num = amount.findNextNum();
             Integer proxNum = amount.findProxNum(num);
             if (num != null && proxNum != null) {
-                amount.removeNumbers(num, proxNum);
+                amount.updateCollection(num, proxNum);
             } else {
                 return null;
             }
@@ -194,31 +194,23 @@ public class Main {
             List<Integer> keys = this.MATCHNUMBERS.get(KeysMatchNumbers.SIZE_NUMBER).keySet().stream()
                     .collect(Collectors.toList());
             if (keys.size() > 0) {
-                List<Integer> keysSizeNumber = (ArrayList<Integer>) this.MATCHNUMBERS.get(KeysMatchNumbers.SIZE_NUMBER).keySet().stream().collect(Collectors.toList());
-                if (keysSizeNumber.size() > 1) {
-                    Collections.sort(keysSizeNumber);
-                    Integer selected;
-                    Integer min = 0;
-                    for (Integer h : keysSizeNumber) {
-                        List<Integer> list = (List<Integer>) this.MATCHNUMBERS.get(KeysMatchNumbers.SIZE_NUMBER).get(h);
-                        for (Integer c : list) {
-                            List<Integer> square = (ArrayList<Integer>) this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SQUARE).get(c);
-                            Set<Integer> sizes = new HashSet<>();
-                            if (square.size() > 1) {    
-                                for (Integer i : square) {
-                                    sizes.add((int) this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SIZE).get(i));
-                                }
-                                if (sizes.size() > 1) {
-                                    return c;
-                                }
-                            } else {
-                                return c;
-                            }
+                List<Integer> minSizeNumber = (ArrayList<Integer>) this.MATCHNUMBERS.get(KeysMatchNumbers.SIZE_NUMBER).get(Collections.min(keys));
+                Integer selected = null;
+                Integer min = 0;
+                for (Integer c : minSizeNumber) {
+                    List<Integer> square = (ArrayList<Integer>) this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SQUARE).get(c);
+                    for (Integer i : square) {
+                        Integer size = (int) this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SIZE).get(i);
+                        if (min == 0 || size <= min) {
+                            min = size;
+                            selected = c;
                         }
                     }
                 }
-                List<Integer> list = (List<Integer>) this.MATCHNUMBERS.get(KeysMatchNumbers.SIZE_NUMBER).get(keysSizeNumber.get(0));
-                return list.get(0);
+                if (selected == null) {
+                    selected = minSizeNumber.get(0);
+                }
+                return selected;
             }
             return null;
         }
