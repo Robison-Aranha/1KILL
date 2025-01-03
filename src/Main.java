@@ -10,7 +10,7 @@ public class Main {
 
     public static void main(String args[]) {
         long tempoInicial = System.currentTimeMillis();
-        System.out.println(organizeArray(73));
+        System.out.println(organizeArray(23));
         long tempoFinal = System.currentTimeMillis();
         System.out.println(tempoFinal - tempoInicial);
     }
@@ -21,9 +21,13 @@ public class Main {
         amount.matchNumbers();
         while (true) {
             Integer num = amount.findNextNum();
-            Integer proxNum = amount.findProxNum(num);
+            Integer proxNum = amount.findProxNum(num, null);
             if (num != null && proxNum != null) {
-                amount.updateCollection(num, proxNum);
+                if (!amount.verifyMatchnumbers(num, proxNum)) {
+                    amount.removeNumbers(num, proxNum);
+                } else {
+                    amount.updateCollection(num, proxNum);
+                }
             } else {
                 return null;
             }
@@ -194,80 +198,220 @@ public class Main {
             List<Integer> keys = this.MATCHNUMBERS.get(KeysMatchNumbers.SIZE_NUMBER).keySet().stream()
                     .collect(Collectors.toList());
             if (keys.size() > 0) {
-                List<Integer> minSizeNumber = (ArrayList<Integer>) this.MATCHNUMBERS.get(KeysMatchNumbers.SIZE_NUMBER).get(Collections.min(keys));
-                Integer selected = null;
-                Integer min = 0;
-                for (Integer c : minSizeNumber) {
-                    List<Integer> square = (ArrayList<Integer>) this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SQUARE).get(c);
-                    for (Integer i : square) {
-                        Integer size = (int) this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SIZE).get(i);
-                        if (min == 0 || size <= min) {
-                            min = size;
-                            selected = c;
-                        }
-                    }
-                }
-                if (selected == null) {
-                    selected = minSizeNumber.get(0);
-                }
-                return selected;
+                Integer num = ((ArrayList<Integer>) this.MATCHNUMBERS.get(KeysMatchNumbers.SIZE_NUMBER)
+                        .get(Collections.min(keys))).get(0);
+                return num;
             }
             return null;
         }
 
         @SuppressWarnings("unchecked")
-        public Integer findProxNum(Integer num) {
+        public Integer findProxNum(Integer num, List<Integer> numbersToAvoid) {
             Object obj = this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SQUARE).get(num);
             if (obj != null) {
                 List<Integer> squareObj = (ArrayList<Integer>) obj;
                 List<Integer> listSizes = new ArrayList<Integer>();
                 for (Integer c : squareObj) {
-                    Integer size = (Integer) this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SIZE).get(c);
+                    Integer size;
+                    if (numbersToAvoid == null) {
+                        size = (Integer) this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SIZE).get(c);
+                    } else {
+                        size = ((ArrayList<Integer>) this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SIZE).get(c))
+                                .stream().filter(n -> !numbersToAvoid.contains(n)).collect(Collectors.toList()).size();
+                    }
                     listSizes.add(size);
                 }
                 Integer minSize = Collections.min(listSizes);
                 List<Integer> proxNums = squareObj.stream()
                         .filter(s -> (int) this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SIZE).get(s) == minSize)
                         .collect(Collectors.toList());
-                
+
                 return proxNums.get(0);
             }
             return null;
         }
 
-        @SuppressWarnings("unchecked")
+        @SuppressWarnings({ "unchecked", "unused" })
         public Boolean verifyMatchnumbers(Integer num, Integer proxNum) {
+            List<Integer> numbersToAvoid = new ArrayList<>();
             Boolean isNumInAmount = (Boolean) this.MATCHNUMBERS.get(KeysMatchNumbers.IS_IN_AMOUNT).get(num);
             Boolean isProxNumInAmount = (Boolean) this.MATCHNUMBERS.get(KeysMatchNumbers.IS_IN_AMOUNT).get(proxNum);
-            List<Integer> numSquare = (ArrayList<Integer>) this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SQUARE)
-                    .get(num);
-            List<Integer> proxNumSquare = (ArrayList<Integer>) this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SQUARE)
-                    .get(proxNum);
-            List<Integer> numbersToAvoid = new ArrayList<>();
-            if (isProxNumInAmount) {
-                numbersToAvoid.add(proxNum);
-            }
             if (isNumInAmount) {
                 numbersToAvoid.add(num);
             }
-            Set<Integer> firstGeneratioNumbers = new HashSet<>();
-            firstGeneratioNumbers.addAll(numSquare);
-            firstGeneratioNumbers.addAll(proxNumSquare);
-            firstGeneratioNumbers = firstGeneratioNumbers.stream().filter(n -> {
-                Boolean isNInAmount = (Boolean) this.MATCHNUMBERS.get(KeysMatchNumbers.IS_IN_AMOUNT).get(n);
-                List<Integer> squares = (ArrayList<Integer>) this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SQUARE)
-                        .get(n);
-                squares = squares.stream().filter(c -> !numbersToAvoid.contains(c)).collect(Collectors.toList());
-                if (!isNInAmount && squares.size() <= 1) {
-                    return true;
+            if (isProxNumInAmount) {
+                numbersToAvoid.add(proxNum);
+            }
+            List<Integer> squareNum = new ArrayList<>(
+                    (ArrayList<Integer>) this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SQUARE).get(num));
+            List<Integer> squareProxNum = new ArrayList<>(
+                    (ArrayList<Integer>) this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SQUARE).get(proxNum));
+            Set<Integer> numbersToVerify = Stream.concat(squareNum.stream(), squareProxNum.stream())
+                    .collect(Collectors.toSet());
+            numbersToVerify.remove(proxNum);
+            numbersToVerify.remove(num);
+            numbersToVerify = numbersToVerify.stream()
+                    .filter(n -> (boolean) this.MATCHNUMBERS.get(KeysMatchNumbers.IS_IN_AMOUNT).get(n) == false &&
+                            ((ArrayList<Integer>) this.MATCHNUMBERS
+                                    .get(KeysMatchNumbers.NUMBER_SQUARE).get(n)).stream()
+                                    .filter(c -> !numbersToAvoid.contains(c)).collect(Collectors.toList()).size() == 1)
+                    .collect(Collectors.toSet());
+            List<Integer> numberSize1 = (ArrayList<Integer>) this.MATCHNUMBERS.get(KeysMatchNumbers.SIZE_NUMBER).get(1);
+            if (numberSize1 != null) {
+                numberSize1 = numberSize1.stream()
+                        .filter(n -> (boolean) this.MATCHNUMBERS.get(KeysMatchNumbers.IS_IN_AMOUNT).get(n) == false)
+                        .collect(Collectors.toList());
+                numbersToVerify.addAll(numberSize1);
+            }
+            if (this.EDGE_NUMBERS.size() > 0) {
+                numbersToVerify.addAll(this.EDGE_NUMBERS);
+            }
+            if (numbersToVerify.size() > 0) {
+                for (Integer c : numbersToVerify) {
+                    Boolean principalNumbersHasPassed = false;
+                    Integer number = c;
+                    if ((boolean) this.MATCHNUMBERS.get(KeysMatchNumbers.IS_IN_AMOUNT).get(c) == true) {
+                        number = this.getContrariorNumberInAmount(number);
+                    }
+                    List<Object> returnObj = this.getTrack(number, numbersToAvoid, num, proxNum,
+                            principalNumbersHasPassed);
+                    TrackTypes trackType = (TrackTypes) returnObj.get(0);
+                    List<Integer> track = (ArrayList<Integer>) returnObj.get(1);
+                    Set<Integer> finalTrack = new HashSet<>();
+                    if (trackType.equals(TrackTypes.NO_MORE_WAYS)) {
+                        for (Integer h : track) {
+                            if ((boolean) this.MATCHNUMBERS.get(KeysMatchNumbers.IS_IN_AMOUNT).get(h) == true) {
+                                List<Integer> list = this.getAmountRefered(h);
+                                finalTrack.addAll(list);
+                            } else {
+                                finalTrack.add(h);
+                            }
+                        }
+                        if (finalTrack.size() != this.NUM) {
+                            return false;
+                        }
+                    }
                 }
+            }
+            if (num == 36 && proxNum == 45) {
                 return false;
-            }).collect(Collectors.toSet());
-            firstGeneratioNumbers = firstGeneratioNumbers.stream().filter(n -> !Arrays.asList(num, proxNum).contains(n)).collect(Collectors.toSet());
-            if (firstGeneratioNumbers.size() > 0) {
-                System.out.println();
             }
             return true;
+        }
+
+        @SuppressWarnings("unchecked")
+        public List<Object> getTrack(Integer number, List<Integer> numbersToAvoid,
+                Integer num, Integer proxNum,
+                Boolean principalNumbersHasPassed) {
+            Integer currentNumber = number;
+            List<Integer> track;
+            if (numbersToAvoid != null) {
+                track = new ArrayList<>(numbersToAvoid);
+            } else {
+                track = new ArrayList<>();
+            }
+            track.add(currentNumber);
+            while (true) {
+                List<Integer> square = (List<Integer>) this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SQUARE)
+                        .get(currentNumber);
+                if (square != null) {
+                    square = square.stream().filter(n -> !track.contains(n)).collect(Collectors.toList());
+                    if (currentNumber == num || currentNumber == proxNum) {
+                        Integer nextNumber = currentNumber == num ? proxNum : num;
+                        if (!principalNumbersHasPassed) {
+                            principalNumbersHasPassed = true;
+                            square = Arrays.asList(nextNumber);
+                        }
+                    }
+                    Boolean verifyer = false;
+                    while (true) {
+                        if (square.size() == 1) {
+                            Integer numberSquare = square.get(0);
+                            Integer amountNumberRefered = this.getContrariorNumberInAmount(numberSquare);
+                            if (amountNumberRefered != null) {
+                                track.add(amountNumberRefered);
+                                if (num != null && proxNum != null && amountNumberRefered == num
+                                        || amountNumberRefered == proxNum && !principalNumbersHasPassed) {
+                                    principalNumbersHasPassed = true;
+                                    Integer nextNumber = amountNumberRefered == num ? proxNum : num;
+                                    Integer nextAmountNumber = this.getContrariorNumberInAmount(nextNumber);
+                                    if (track.contains(nextAmountNumber)) {
+                                        return Arrays.asList(TrackTypes.NO_MORE_WAYS, track);
+                                    }
+                                    if (nextAmountNumber != null) {
+                                        currentNumber = nextAmountNumber;
+                                    } else {
+                                        currentNumber = nextNumber;
+                                    }
+                                } else {
+                                    currentNumber = amountNumberRefered;
+                                }
+                            } else {
+                                currentNumber = numberSquare;
+                            }
+                            track.add(currentNumber);
+                            verifyer = true;
+                            break;
+                        } else if (square.size() == 0) {
+                            return Arrays.asList(TrackTypes.NO_MORE_WAYS, track);
+                        } else {
+                            square = square.stream().filter(c -> {
+                                thi
+                                squares = squares.stream().filter(n -> !track.contains(n))
+                                        .collect(Collectors.toList());
+                                if (squares.size() <= 1) {
+                                    return true;
+                                }
+                                return false;
+                            }).collect(Collectors.toList());
+                            if (square.size() == 1) {
+                                Integer nextNum = square.get(0);
+                                track.add(nextNum);
+                                if (nextNum == num || nextNum == proxNum && !principalNumbersHasPassed) {
+                                    principalNumbersHasPassed = true;
+                                    square = Arrays.asList(nextNum == num ? proxNum : num);
+                                }
+                                continue;
+                            }
+                            return Arrays.asList(TrackTypes.MULTIPLE_WAYS, track);
+                        }
+                    }
+                    if (verifyer) {
+                        continue;
+                    }
+                } else {
+                    return Arrays.asList(TrackTypes.NO_MORE_WAYS, track);
+                }
+                break;
+            }
+            return null;
+        }
+
+        public Integer getContrariorNumberInAmount(Integer num) {
+            List<Integer> amount = this.getAmountRefered(num);
+            if (amount != null) {
+                Integer index = amount.indexOf(num);
+                if (index == 0 || index == amount.size() - 1) {
+                    index = amount.indexOf(num);
+                    return amount.get(index == 0 ? amount.size() - 1 : 0);
+                }
+            }
+            return null;
+        }
+
+        public List<Integer> getAmountRefered(Integer num) {
+            for (List<Integer> amount : this.getAmounts()) {
+                Integer index = amount.indexOf(num);
+                if (index == 0 || index == amount.size() - 1) {
+                    return new ArrayList<>(amount);
+                }
+            }
+            return null;
+        }
+
+        public List<List<Integer>> getAmounts() {
+            return (List<List<Integer>>) this.AMOUNT.get(KeysMatchNumbers.DIREITA).values().stream()
+                    .collect(Collectors.toList());
         }
 
         @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -351,215 +495,227 @@ public class Main {
         }
     }
 
+    // @SuppressWarnings("unchecked")
+    // public List<Object> getTrack(Integer number, List<Integer> numbersToAvoid,
+    // Integer num, Integer proxNum,
+    // Boolean principalNumbersHasPassed) {
+    // Integer currentNumber = number;
+    // List<Integer> track;
+    // if (numbersToAvoid != null) {
+    // track = new ArrayList<>(numbersToAvoid);
+    // } else {
+    // track = new ArrayList<>();
+    // }
+    // track.add(currentNumber);
+    // while (true) {
+    // List<Integer> square = (List<Integer>)
+    // this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SQUARE)
+    // .get(currentNumber);
+    // if (square != null) {
+    // square = square.stream().filter(n ->
+    // !track.contains(n)).collect(Collectors.toList());
+    // if (currentNumber == num || currentNumber == proxNum) {
+    // Integer nextNumber = currentNumber == num ? proxNum : num;
+    // if (!principalNumbersHasPassed) {
+    // principalNumbersHasPassed = true;
+    // square = Arrays.asList(nextNumber);
+    // }
+    // }
+    // Boolean verifyer = false;
+    // while (true) {
+    // if (square.size() == 1) {
+    // Integer numberSquare = square.get(0);
+    // Integer amountNumberRefered = this.getContrariorNumberInAmount(numberSquare);
+    // if (amountNumberRefered != null) {
+    // track.add(amountNumberRefered);
+    // if (num != null && proxNum != null && amountNumberRefered == num
+    // || amountNumberRefered == proxNum && !principalNumbersHasPassed) {
+    // principalNumbersHasPassed = true;
+    // Integer nextNumber = amountNumberRefered == num ? proxNum : num;
+    // Integer nextAmountNumber = this.getContrariorNumberInAmount(nextNumber);
+    // if (track.contains(nextAmountNumber)) {
+    // return Arrays.asList(TrackTypes.NO_MORE_WAYS, track);
+    // }
+    // if (nextAmountNumber != null) {
+    // currentNumber = nextAmountNumber;
+    // } else {
+    // currentNumber = nextNumber;
+    // track.add(currentNumber);
+    // }
+    // } else {
+    // currentNumber = amountNumberRefered;
+    // }
+    // } else {
+    // currentNumber = numberSquare;
+    // track.add(currentNumber);
+    // }
+    // verifyer = true;
+    // break;
+    // } else if (square.size() == 0) {
+    // return Arrays.asList(TrackTypes.NO_MORE_WAYS, track);
+    // } else {
+    // square = square.stream().filter(c -> {
+    // List<Integer> squares = (List<Integer>) this.MATCHNUMBERS
+    // .get(KeysMatchNumbers.NUMBER_SQUARE).get(c);
+    // squares = squares.stream().filter(n -> !track.contains(n))
+    // .collect(Collectors.toList());
+    // if (squares.size() == 0) {
+    // return true;
+    // } else if (squares.size() == 1 && (Boolean) this.MATCHNUMBERS
+    // .get(KeysMatchNumbers.IS_IN_AMOUNT).get(c) == false) {
+    // return true;
+    // }
+    // return false;
+    // }).collect(Collectors.toList());
+    // if (square.size() == 1) {
+    // Integer nextNum = square.get(0);
+    // track.add(nextNum);
+    // if (nextNum == num || nextNum == proxNum && !principalNumbersHasPassed) {
+    // principalNumbersHasPassed = true;
+    // square = Arrays.asList(nextNum == num ? proxNum : num);
+    // }
+    // continue;
+    // }
+    // return Arrays.asList(TrackTypes.MULTIPLE_WAYS, track);
+    // }
+    // }
+    // if (verifyer) {
+    // continue;
+    // }
+    // } else {
+    // return Arrays.asList(TrackTypes.NO_MORE_WAYS, track);
+    // }
+    // break;
+    // }
+    // return null;
+    // }
+
     // public Integer getContrariorNumberInAmount(Integer num) {
-        //     List<Integer> amount = this.getAmountRefered(num);
-        //     if (amount != null) {
-        //         Integer index = amount.indexOf(num);
-        //         index = index == 0 ? amount.size() - 1 : 0;
-        //         return amount.get(index);
-        //     }
-        //     return null;
-        // }
+    // for (List<Integer> amount : this.getAmounts()) {
+    // Integer index = amount.indexOf(num);
+    // if (index == 0 || index == amount.size() - 1) {
+    // index = amount.indexOf(num);
+    // return amount.get(index == 0 ? amount.size() - 1 : 0);
+    // }
+    // }
+    // return null;
+    // }
 
-        // public List<Integer> getAmountRefered(Integer num) {
-        //     for (List<Integer> amount : this.getAmounts()) {
-        //         Integer index = amount.indexOf(num);
-        //         if (index == 0 || index == amount.size() - 1) {
-        //             return new ArrayList<>(amount);
-        //         }
-        //     }
-        //     return null;
-        // }
+    // public List<List<Integer>> getAmounts() {
+    // return (List<List<Integer>>)
+    // this.AMOUNT.get(KeysMatchNumbers.DIREITA).values().stream()
+    // .collect(Collectors.toList());
+    // }
 
-        // public List<List<Integer>> getAmounts() {
-        //     return (List<List<Integer>>) this.AMOUNT.get(KeysMatchNumbers.DIREITA).values().stream()
-        //             .collect(Collectors.toList());
-        // }
+    // public List<Integer> getAmountRefered(Integer num) {
+    // for (List<Integer> amount : this.getAmounts()) {
+    // Integer index = amount.indexOf(num);
+    // if (index == 0 || index == amount.size() - 1) {
+    // return new ArrayList<>(amount);
+    // }
+    // }
+    // return null;
+    // }
 
-     // @SuppressWarnings("unchecked")
-        // public Boolean realocateNumber(Integer num) {
-        //     Integer sizeNum = (Integer) this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SIZE).get(num);
-        //     if (sizeNum != null) {
-        //         List<Integer> sizeList = (List<Integer>) this.MATCHNUMBERS.get(KeysMatchNumbers.SIZE_NUMBER).get(sizeNum);
-        //         sizeList.remove(num);
-        //         sizeList.add(num);
-        //         this.MATCHNUMBERS.get(KeysMatchNumbers.SIZE_NUMBER).put(sizeNum, sizeList);
-        //         return true;
-        //     }
-        //     return false;
-        // }
+    // public List<List<Integer>> getAmounts() {
+    // return (List<List<Integer>>)
+    // this.AMOUNT.get(KeysMatchNumbers.DIREITA).values().stream()
+    // .collect(Collectors.toList());
+    // }
 
     // @SuppressWarnings("unchecked")
-        // public List<Object> getTrack(Integer number, List<Integer> numbersToAvoid, Integer num, Integer proxNum) {
-        //     Boolean principalNumbersHasPassed = false;
-        //     Integer currentNumber = number;
-        //     List<Integer> numbersToIgnore;
-        //     List<Integer> track = new ArrayList<>();
-        //     if (numbersToAvoid != null) {
-        //         numbersToIgnore = new ArrayList<>(numbersToAvoid);
-        //     } else {
-        //         numbersToIgnore = new ArrayList<>();
-        //     }
-        //     track.add(currentNumber);
-        //     numbersToIgnore.add(currentNumber);
-        //     while (true) {
-        //         List<Integer> square = (List<Integer>) this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SQUARE)
-        //                 .get(currentNumber);
-        //         if (square != null) {
-        //             square = square.stream().filter(n -> !numbersToIgnore.contains(n)).collect(Collectors.toList());
-        //             if (currentNumber == num || currentNumber == proxNum) {
-        //                 Integer nextNumber = currentNumber == num ? proxNum : num;
-        //                 if (!principalNumbersHasPassed) {
-        //                     principalNumbersHasPassed = true;
-        //                     square = Arrays.asList(nextNumber);
-        //                 }
-        //             }
-        //             Boolean verifyer = false;
-        //             while (true) {
-        //                 if (square.size() == 1) {
-        //                     Integer numberSquare = square.get(0);
-        //                     Integer amountNumberRefered = this.getContrariorNumberInAmount(numberSquare);
-        //                     if (amountNumberRefered != null) {
-        //                         List<Integer> amount = this.getAmountRefered(numberSquare);
-        //                         if (amount.indexOf(numberSquare) != 0) {
-        //                             Collections.reverse(amount);
-        //                         }
-        //                         track.addAll(amount);
-        //                         numbersToIgnore.add(numberSquare);
-        //                         if (num != null && proxNum != null && amountNumberRefered == num
-        //                                 || amountNumberRefered == proxNum && !principalNumbersHasPassed) {
-        //                             principalNumbersHasPassed = true;
-        //                             Integer nextNumber = amountNumberRefered == num ? proxNum : num;
-        //                             Integer nextAmountNumber = this.getContrariorNumberInAmount(nextNumber);
-        //                             if (numbersToIgnore.contains(nextAmountNumber)) {
-        //                                 currentNumber = amountNumberRefered;
-        //                                 numbersToIgnore.add(currentNumber);
-        //                                 return Arrays.asList(TrackTypes.NO_MORE_WAYS, track, numbersToIgnore);
-        //                             }
-        //                             if (nextAmountNumber != null) {
-        //                                 List<Integer> amountNextNumber = this.getAmountRefered(nextNumber);
-        //                                 if (amountNextNumber.indexOf(nextNumber) != 0) {
-        //                                     Collections.reverse(amountNextNumber);
-        //                                 }
-        //                                 track.addAll(amountNextNumber);
-        //                                 currentNumber = nextAmountNumber;
-        //                             } else {
-        //                                 currentNumber = nextNumber;
-        //                                 track.add(currentNumber);
-        //                             }
-        //                         } else {
-        //                             currentNumber = amountNumberRefered;
-        //                         }
-        //                     } else {
-        //                         currentNumber = numberSquare;
-        //                         track.add(currentNumber);
-        //                     }
-        //                     numbersToIgnore.add(currentNumber);
-        //                     verifyer = true;
-        //                     break;
-        //                 } else if (square.size() == 0) {
-        //                     return Arrays.asList(TrackTypes.NO_MORE_WAYS, track);
-        //                 } else {
-        //                     square = square.stream().filter(c -> {
-        //                         List<Integer> squares = (List<Integer>) this.MATCHNUMBERS
-        //                                 .get(KeysMatchNumbers.NUMBER_SQUARE).get(c);
-        //                         squares = squares.stream().filter(n -> !numbersToIgnore.contains(n))
-        //                                 .collect(Collectors.toList());
-        //                         if (squares.size() == 0) {
-        //                             return true;
-        //                         } else if (squares.size() == 1 && (Boolean) this.MATCHNUMBERS
-        //                                 .get(KeysMatchNumbers.IS_IN_AMOUNT).get(c) == false) {
-        //                             return true;
-        //                         }
-        //                         return false;
-        //                     }).collect(Collectors.toList());
-        //                     if (square.size() == 1) {
-        //                         Integer nextNum = square.get(0);
-        //                         track.add(nextNum);
-        //                         numbersToIgnore.add(nextNum);
-        //                         if (nextNum == num || nextNum == proxNum && !principalNumbersHasPassed) {
-        //                             principalNumbersHasPassed = true;
-        //                             square = Arrays.asList(nextNum == num ? proxNum : num);
-        //                         }
-        //                         continue;
-        //                     }
-        //                     return Arrays.asList(TrackTypes.MULTIPLE_WAYS, track);
-        //                 }
-        //             }
-        //             if (verifyer) {
-        //                 continue;
-        //             }
-        //         } else {
-        //             return Arrays.asList(TrackTypes.NO_MORE_WAYS, track, numbersToIgnore);
-        //         }
-        //         break;
-        //     }
-        //     return null;
-        // }
+    // public Boolean realocateNumber(Integer num) {
+    // Integer sizeNum = (Integer)
+    // this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SIZE).get(num);
+    // if (sizeNum != null) {
+    // List<Integer> sizeList = (List<Integer>)
+    // this.MATCHNUMBERS.get(KeysMatchNumbers.SIZE_NUMBER).get(sizeNum);
+    // sizeList.remove(num);
+    // sizeList.add(num);
+    // this.MATCHNUMBERS.get(KeysMatchNumbers.SIZE_NUMBER).put(sizeNum, sizeList);
+    // return true;
+    // }
+    // return false;
+    // }
 
-     // @SuppressWarnings({ "unchecked", "rawtypes" })
-        // public void getTrackNumber(Integer number, List<Integer> currentNumbersToAvoid,
-        //         HashMap<Integer, HashMap<TrackTypes, List<List<Integer>>>> tracks,
-        //         Integer num,
-        //         Integer proxNum) {
-        //     List<Integer> numbersToAvoid = new ArrayList<>(currentNumbersToAvoid);
-        //     Integer contrariorNumber = this.getContrariorNumberInAmount(number);
-        //     if (contrariorNumber != null) {
-        //         numbersToAvoid.add(contrariorNumber);
-        //     }
-        //     List<Integer> numbersToAvoidLater = this.updateTracks(number, number, tracks, numbersToAvoid, num, proxNum);
-        //     numbersToAvoid = new ArrayList(Stream.concat(currentNumbersToAvoid.stream(), numbersToAvoidLater.stream())
-        //             .collect(Collectors.toSet()));
-        //     if (contrariorNumber != null) {
-        //         numbersToAvoid.add(number);
-        //     }
-        //     this.updateTracks(contrariorNumber != null ? contrariorNumber : number, number, tracks,
-        //             numbersToAvoid, num, proxNum);
-        // }
+    // @SuppressWarnings({ "unchecked", "rawtypes" })
+    // public void getTrackNumber(Integer number, List<Integer>
+    // currentNumbersToAvoid,
+    // HashMap<Integer, HashMap<TrackTypes, List<List<Integer>>>> tracks,
+    // Integer num,
+    // Integer proxNum) {
+    // List<Integer> numbersToAvoid = new ArrayList<>(currentNumbersToAvoid);
+    // Integer contrariorNumber = this.getContrariorNumberInAmount(number);
+    // if (contrariorNumber != null) {
+    // numbersToAvoid.add(contrariorNumber);
+    // }
+    // List<Integer> numbersToAvoidLater = this.updateTracks(number, number, tracks,
+    // numbersToAvoid, num, proxNum);
+    // numbersToAvoid = new ArrayList(Stream.concat(currentNumbersToAvoid.stream(),
+    // numbersToAvoidLater.stream())
+    // .collect(Collectors.toSet()));
+    // if (contrariorNumber != null) {
+    // numbersToAvoid.add(number);
+    // }
+    // this.updateTracks(contrariorNumber != null ? contrariorNumber : number,
+    // number, tracks,
+    // numbersToAvoid, num, proxNum);
+    // }
 
-        // @SuppressWarnings("unchecked")
-        // public List<Integer> updateTracks(Integer number, Integer key,
-        //         HashMap<Integer, HashMap<TrackTypes, List<List<Integer>>>> tracks,
-        //         List<Integer> currentNumbersToAvoid, Integer num, Integer proxNum) {
-        //     if (tracks.get(key) == null) {
-        //         tracks.put(key, new HashMap<>());
-        //     }
-        //     List<Integer> ignore = new ArrayList<>(currentNumbersToAvoid);
-        //     Boolean principalNumbersHasPassed = false;
-        //     for (TrackTypes c : tracks.get(key).keySet()) {
-        //         if (tracks.get(key).get(c).get(0).contains(num)) {
-        //             principalNumbersHasPassed = true;
-        //         }
-        //     }
-        //     List<Object> returnObj = this.getTrack(number, ignore, num, proxNum, principalNumbersHasPassed);
-        //     TrackTypes trackType = (TrackTypes) returnObj.get(0);
-        //     List<Integer> track = (ArrayList<Integer>) returnObj.get(1);
-        //     if (tracks.get(key).get(trackType) == null) {
-        //         tracks.get(key).put(trackType, new ArrayList<>());
-        //     }
-        //     tracks.get(key).get(trackType).add(track);
-        //     return (ArrayList<Integer>) returnObj.get(2);
-        // }
+    // @SuppressWarnings("unchecked")
+    // public List<Integer> updateTracks(Integer number, Integer key,
+    // HashMap<Integer, HashMap<TrackTypes, List<List<Integer>>>> tracks,
+    // List<Integer> currentNumbersToAvoid, Integer num, Integer proxNum) {
+    // if (tracks.get(key) == null) {
+    // tracks.put(key, new HashMap<>());
+    // }
+    // List<Integer> ignore = new ArrayList<>(currentNumbersToAvoid);
+    // Boolean principalNumbersHasPassed = false;
+    // for (TrackTypes c : tracks.get(key).keySet()) {
+    // if (tracks.get(key).get(c).get(0).contains(num)) {
+    // principalNumbersHasPassed = true;
+    // }
+    // }
+    // List<Object> returnObj = this.getTrack(number, ignore, num, proxNum,
+    // principalNumbersHasPassed);
+    // TrackTypes trackType = (TrackTypes) returnObj.get(0);
+    // List<Integer> track = (ArrayList<Integer>) returnObj.get(1);
+    // if (tracks.get(key).get(trackType) == null) {
+    // tracks.get(key).put(trackType, new ArrayList<>());
+    // }
+    // tracks.get(key).get(trackType).add(track);
+    // return (ArrayList<Integer>) returnObj.get(2);
+    // }
 
-     // @SuppressWarnings("unchecked")
-        // public List<Integer> verifyNexyNumbers(List<Integer> square, List<Integer> numbersToAvoid) {
-        //     List<Integer> finalArray = new ArrayList<>();
-        //     for (Integer h : square) {
-        //         Boolean isHInAmount = (Boolean) this.MATCHNUMBERS.get(KeysMatchNumbers.IS_IN_AMOUNT).get(h);
-        //         List<Integer> squares = ((ArrayList<Integer>) this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SQUARE)
-        //                 .get(h)).stream().filter(c -> !numbersToAvoid.contains(c)).collect(Collectors.toList());
-        //         List<Integer> numbersSize1H = squares.stream()
-        //                 .filter(n -> ((ArrayList<Integer>) this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SQUARE).get(n))
-        //                         .stream().filter(c -> !numbersToAvoid.contains(c)).collect(Collectors.toList())
-        //                         .size() == 1).collect(Collectors.toList());
-        //         List<Integer> numbersSize1HNotInAmount = numbersSize1H.stream()
-        //         .filter(n -> (Boolean) this.MATCHNUMBERS.get(KeysMatchNumbers.IS_IN_AMOUNT).get(n) == false).collect(Collectors.toList());
-        //         List<Integer> numbersSize1HInAmount = numbersSize1H.stream()
-        //         .filter(n -> (Boolean) this.MATCHNUMBERS.get(KeysMatchNumbers.IS_IN_AMOUNT).get(n) == true).collect(Collectors.toList());
-        //         if (isHInAmount && numbersSize1HNotInAmount.size() == 0 ) {
-        //             finalArray.add(h);
-        //         } 
-        //     }
-        //     return finalArray;
-        // }
+    // @SuppressWarnings("unchecked")
+    // public List<Integer> verifyNexyNumbers(List<Integer> square, List<Integer>
+    // numbersToAvoid) {
+    // List<Integer> finalArray = new ArrayList<>();
+    // for (Integer h : square) {
+    // Boolean isHInAmount = (Boolean)
+    // this.MATCHNUMBERS.get(KeysMatchNumbers.IS_IN_AMOUNT).get(h);
+    // List<Integer> squares = ((ArrayList<Integer>)
+    // this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SQUARE)
+    // .get(h)).stream().filter(c ->
+    // !numbersToAvoid.contains(c)).collect(Collectors.toList());
+    // List<Integer> numbersSize1H = squares.stream()
+    // .filter(n -> ((ArrayList<Integer>)
+    // this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SQUARE).get(n))
+    // .stream().filter(c ->
+    // !numbersToAvoid.contains(c)).collect(Collectors.toList())
+    // .size() == 1).collect(Collectors.toList());
+    // List<Integer> numbersSize1HNotInAmount = numbersSize1H.stream()
+    // .filter(n -> (Boolean)
+    // this.MATCHNUMBERS.get(KeysMatchNumbers.IS_IN_AMOUNT).get(n) ==
+    // false).collect(Collectors.toList());
+    // List<Integer> numbersSize1HInAmount = numbersSize1H.stream()
+    // .filter(n -> (Boolean)
+    // this.MATCHNUMBERS.get(KeysMatchNumbers.IS_IN_AMOUNT).get(n) ==
+    // true).collect(Collectors.toList());
+    // if (isHInAmount && numbersSize1HNotInAmount.size() == 0 ) {
+    // finalArray.add(h);
+    // }
+    // }
+    // return finalArray;
+    // }
 }
