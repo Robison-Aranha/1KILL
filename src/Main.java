@@ -4,7 +4,7 @@ import java.util.stream.Collectors;
 public class Main {
     public static void main(String args[]) {
         long tempoInicial = System.currentTimeMillis();
-        System.out.println(organizeArray(1394));
+        System.out.println(organizeArray(23));
         long tempoFinal = System.currentTimeMillis();
         System.out.println(tempoFinal - tempoInicial);
     }
@@ -139,10 +139,9 @@ public class Main {
                 List<Integer> anteriorTrack) {
             List<HashMap<MapTrackKeys, Object>> tracks = new ArrayList<>();
             List<HashMap<MapTrackKeys, Object>> excluidTracks = new ArrayList<>();
-            Boolean verifyHashes = false;
             while (true) {
-                LinkedHashSet<Integer> track = this.getTrack(number, tracks, anteriorTrack, excluidTracks, verifyHashes);
-                verifyHashes = !verifyHashes;
+                this.updateTracks(tracks, excluidTracks);
+                LinkedHashSet<Integer> track = this.getTrack(number, tracks, anteriorTrack, excluidTracks);
                 if (track.size() == this.NUM) {
                     this.FINAL_ARRAY = track.stream().collect(Collectors.toList());
                     return tracksToVerify;
@@ -167,7 +166,7 @@ public class Main {
 
         @SuppressWarnings("unchecked")
         public LinkedHashSet<Integer> getTrack(Integer number, List<HashMap<MapTrackKeys, Object>> tracks,
-                List<Integer> anteriorTrack, List<HashMap<MapTrackKeys, Object>> excluidTracks, Boolean verifyHashes) {
+                List<Integer> anteriorTrack, List<HashMap<MapTrackKeys, Object>> excluidTracks) {
             Integer currentNumber = number;
             LinkedHashSet<Integer> track = new LinkedHashSet<>(
                     anteriorTrack != null ? anteriorTrack : new ArrayList<>());
@@ -197,24 +196,14 @@ public class Main {
                             nextNum = filteredNums.get(0);
                         }
                         if (nextNums.size() > 1) {
-                            if (hash != null && verifyHashes) {
-                                Boolean result = this.isChoosedNumbertrack(tracks, currentNumber, excluidTracks);
-                                if (result) {
-                                    if (!trackedNumbers.contains(nextNum)) {
-                                        trackedNumbers.add(nextNum);
-                                    }
-                                }
-                            }
                             Integer index = tracks.indexOf(hash);
                             hash.put(MapTrackKeys.NUMBER, currentNumber);
                             hash.put(MapTrackKeys.TRACKED_VALUES, trackedNumbers);
                             hash.put(MapTrackKeys.TRACK_ARRAY, new LinkedHashSet<>(track));
-                            if (!excluidTracks.contains(hash)) {
-                                if (tracks.contains(hash)) {
-                                    tracks.set(index, hash);
-                                } else { 
-                                    tracks.add(hash);
-                                }
+                            if (tracks.contains(hash)) {
+                                tracks.set(index, hash);
+                            } else { 
+                                tracks.add(hash);
                             }
                         }
                     } else {
@@ -246,17 +235,18 @@ public class Main {
         }
 
         @SuppressWarnings("unchecked")
-        public Boolean isChoosedNumbertrack(List<HashMap<MapTrackKeys, Object>> tracks, Integer actualKey,
+        public void updateTracks(List<HashMap<MapTrackKeys, Object>> tracks,
                 List<HashMap<MapTrackKeys, Object>> excluidTracks) {
             while (true) {
                 if (tracks.size() == 0) {
-                    return false;
+                    return;
                 }
                 HashMap<MapTrackKeys, Object> hash = tracks.get(tracks.size() - 1);
                 Integer lastKey = (Integer) hash.get(MapTrackKeys.NUMBER);
                 Set<Integer> trackArray = (HashSet<Integer>) hash.get(MapTrackKeys.TRACK_ARRAY);
                 List<Integer> trackedNumbers = (ArrayList<Integer>) hash.get(MapTrackKeys.TRACKED_VALUES);
                 List<Integer> filteredArray = this.findProxNum(lastKey, trackArray);
+                Integer nextNum = null;
                 if (filteredArray != null) {
                     filteredArray = filteredArray.stream().filter(n -> !trackedNumbers.contains(n))
                             .collect(Collectors.toList());
@@ -265,11 +255,13 @@ public class Main {
                         if (!excluidTracks.contains(hash)) {
                             excluidTracks.add(hash);
                         }
-                    } else if (actualKey == lastKey) {
-                        return true;
                     } else {
-                        return false;
-                    }
+                        nextNum = filteredArray.get(filteredArray.size() - 1);
+                        if (!trackedNumbers.contains(nextNum)) {
+                            trackedNumbers.add(nextNum);
+                        }
+                        return;
+                    } 
                 } else {
                     tracks.remove(hash);
                     if (!excluidTracks.contains(hash)) {
