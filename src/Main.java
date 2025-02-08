@@ -4,7 +4,7 @@ import java.util.stream.Collectors;
 public class Main {
     public static void main(String args[]) {
         long tempoInicial = System.currentTimeMillis();
-        System.out.println(organizeArray(23));
+        System.out.println(organizeArray(29));
         long tempoFinal = System.currentTimeMillis();
         System.out.println(tempoFinal - tempoInicial);
     }
@@ -24,12 +24,8 @@ public class Main {
 
         private Integer NUM;
         private List<Integer> SQUARES = new ArrayList<>();
-        private HashMap<KeysMatchNumbers, HashMap<Integer, Object>> MATCHNUMBERS = new HashMap<>();
+        private HashMap<Integer, List<Integer>> MATCHNUMBERS = new HashMap<>();
         private List<Integer> FINAL_ARRAY = null;
-
-        enum KeysMatchNumbers {
-            NUMBER_SQUARE, NUMBER_SIZE
-        }
 
         enum MapTrackKeys {
             TRACKED_VALUES, TRACK_ARRAY, NUMBER
@@ -37,8 +33,7 @@ public class Main {
 
         public Amount(Integer num) {
             this.NUM = num;
-            this.MATCHNUMBERS.put(KeysMatchNumbers.NUMBER_SQUARE, new HashMap<>());
-            this.MATCHNUMBERS.put(KeysMatchNumbers.NUMBER_SIZE, new HashMap<>());
+            this.MATCHNUMBERS = new HashMap<>();
         }
 
         public void findSquares() {
@@ -73,43 +68,28 @@ public class Main {
                     }
                 }
                 if (!list.isEmpty()) {
-                    this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SQUARE).put(c, list);
-                    int sizeList = list.size();
-                    if (this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SIZE).get(c) == null) {
-                        this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SIZE).put(c, sizeList);
-                    }
+                    this.MATCHNUMBERS.put(c, list);
                 }
             }
         }
 
-        @SuppressWarnings("unchecked")
         public List<Integer> findProxNum(Integer num, Set<Integer> numbersToAvoid) {
-            Object obj = this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SQUARE).get(num);
-            if (obj != null) {
-                List<Integer> squareObj = (ArrayList<Integer>) obj;
-                if (numbersToAvoid != null) {
-                    squareObj = squareObj.stream().filter(n -> !numbersToAvoid.contains(n))
-                            .collect(Collectors.toList());
+            List<Integer> squareObj = this.MATCHNUMBERS.get(num);
+            squareObj = squareObj.stream().filter(n -> !numbersToAvoid.contains(n))
+                    .collect(Collectors.toList());
+            if (squareObj.size() > 0) {
+                Map<Integer, Integer> listSizes = new HashMap<Integer, Integer>();
+                for (Integer c : squareObj) {
+                    Integer size = this.MATCHNUMBERS.get(c)
+                                .stream().filter(n -> !numbersToAvoid.contains(n)).collect(Collectors.toList())
+                                .size();
+                    listSizes.put(c, size);
                 }
-                if (squareObj.size() > 0) {
-                    Map<Integer, Integer> listSizes = new HashMap<Integer, Integer>();
-                    for (Integer c : squareObj) {
-                        Integer size;
-                        if (numbersToAvoid == null) {
-                            size = (Integer) this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SIZE).get(c);
-                        } else {
-                            size = ((ArrayList<Integer>) this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SQUARE).get(c))
-                                    .stream().filter(n -> !numbersToAvoid.contains(n)).collect(Collectors.toList())
-                                    .size();
-                        }
-                        listSizes.put(c, size);
-                    }
-                    Integer minSize = Collections.min(listSizes.values());
-                    List<Integer> proxNums = listSizes.keySet().stream().filter(n -> listSizes.get(n) == minSize)
-                            .collect(Collectors.toList());
-                    if (proxNums.size() > 0) {
-                        return proxNums;
-                    }
+                Integer minSize = Collections.min(listSizes.values());
+                List<Integer> proxNums = listSizes.keySet().stream().filter(n -> listSizes.get(n) == minSize)
+                        .collect(Collectors.toList());
+                if (proxNums.size() > 0) {
+                    return proxNums;
                 }
             }
             return null;
