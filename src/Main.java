@@ -5,13 +5,15 @@ import java.util.stream.Stream;
 public class Main {
 
     enum KeysMatchNumbers {
-        NUMBER_SQUARE, NUMBER_SIZE, SIZE_NUMBER, DIREITA, ESQUERDA, IS_IN_AMOUNT, NEXT_NUMBER
+        NUMBER_SQUARE, NUMBER_SIZE, SIZE_NUMBER, DIREITA, ESQUERDA, IS_IN_AMOUNT
     }
+
     public static void main(String args[]) {
         long tempoInicial = System.currentTimeMillis();
-        System.out.println(organizeArray(300));
+        System.out.println(organizeArray(1400) == null ? false : true);
         long tempoFinal = System.currentTimeMillis();
-        System.out.println(tempoFinal - tempoInicial);
+        System.out.println("Tempo final: " + (tempoFinal - tempoInicial) + " ms");
+        System.out.println("-=-=-=-==-=-=-==-==-=-=--==-");
     }
 
     public static List<Integer> organizeArray(Integer number) {
@@ -22,7 +24,7 @@ public class Main {
             if (edges.size() == number) {
                 return edges;
             }
-            if (tmpEdge.contains(edges)) {
+            if (tmpEdge.contains(edges) || edges.size() == 0) {
                 return null;
             }
             tmpEdge.add(edges);
@@ -31,6 +33,9 @@ public class Main {
 
     public static List<Integer> generateMaterial(Integer number, List<Integer> edges) {
         Amount amount = generateAmount(number);
+        if (amount == null) {
+            return new ArrayList<>();
+        }
         if (edges != null) {
             amount.populate(edges);
         }
@@ -42,9 +47,16 @@ public class Main {
             } else {
                 if (amount.FINAL_ARRAY != null) {
                     return amount.FINAL_ARRAY;
+                }
+                if (amount.EDGES.size() >= 2) {
+                    return amount.EDGES.subList(0, 2);
                 } else {
                     return amount.EDGES;
                 }
+
+            }
+            if (amount.EDGES.size() > 2 && amount.FINAL_ARRAY == null) {
+                return amount.EDGES.subList(0, 2);
             }
         }
     }
@@ -53,6 +65,9 @@ public class Main {
         Amount amount = new Amount(number);
         amount.findSquares();
         amount.matchNumbers();
+        if (amount.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SQUARE).size() == 0) {
+            return null;
+        }
         return amount;
     }
 
@@ -190,12 +205,13 @@ public class Main {
                     List<Integer> squaresc = (ArrayList<Integer>) this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SQUARE)
                             .get(selected);
                     if (squaresc != null) {
-                        for (Integer i : squaresc) {
+                        for (int i = 0; i < squaresc.size(); i++) {
+                            int numberSquarec = squaresc.get(i);
                             List<Integer> squaresi = (ArrayList<Integer>) this.MATCHNUMBERS
-                                    .get(KeysMatchNumbers.NUMBER_SQUARE).get(i);
+                                    .get(KeysMatchNumbers.NUMBER_SQUARE).get(numberSquarec);
                             if (squaresi != null) {
                                 if (squaresi.contains(selected)) {
-                                    deleteNumberAssociations(i, selected);
+                                    deleteNumberAssociations(numberSquarec, selected);
                                 }
                             }
                         }
@@ -215,38 +231,44 @@ public class Main {
 
         @SuppressWarnings("unchecked")
         public Integer findNextNum() {
-            List<Integer> keys = this.MATCHNUMBERS.get(KeysMatchNumbers.SIZE_NUMBER).keySet().stream()
-                    .collect(Collectors.toList());
-            if (keys.size() > 0) {
-                Integer num = ((ArrayList<Integer>) this.MATCHNUMBERS.get(KeysMatchNumbers.SIZE_NUMBER)
-                        .get(Collections.min(keys))).get(0);
-                return num;
+            Set<Integer> keySet = this.MATCHNUMBERS.get(KeysMatchNumbers.SIZE_NUMBER).keySet();
+            if (keySet.isEmpty()) {
+                return null;
             }
-            return null;
+            int minKey = Integer.MAX_VALUE;
+            for (int key : keySet) {
+                if (key < minKey) {
+                    minKey = key;
+                }
+            }
+            List<Integer> nums = (List<Integer>) this.MATCHNUMBERS.get(KeysMatchNumbers.SIZE_NUMBER).get(minKey);
+            for (Integer num : nums) {
+                if (!(boolean) this.MATCHNUMBERS.get(KeysMatchNumbers.IS_IN_AMOUNT).get(num)) {
+                    return num;
+                }
+            }
+            return nums.get(0);
         }
 
         @SuppressWarnings("unchecked")
         public Integer findProxNum(Integer num) {
-            Object obj = this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SQUARE).get(num);
-            if (obj != null) {
-                List<Integer> squareObj = (ArrayList<Integer>) obj;
-                List<Integer> listSizes = new ArrayList<Integer>();
-                for (Integer c : squareObj) {
-                    Integer size = (Integer) this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SIZE).get(c);
-                    listSizes.add(size);
-                }
-                Integer minSize = Collections.min(listSizes);
-                List<Integer> proxNums = squareObj.stream()
-                        .filter(s -> (int) this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SIZE).get(s) == minSize)
-                        .collect(Collectors.toList());
-                if (proxNums.size() > 0) {
-                    return proxNums.get(0);
+            List<Integer> squareObj = (List<Integer>) this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SQUARE).get(num);
+            if (squareObj == null || squareObj.isEmpty()) {
+                return null;
+            }
+            Integer minSize = Integer.MAX_VALUE;
+            Integer proxNum = null;
+            for (Integer candidate : squareObj) {
+                Integer size = (Integer) this.MATCHNUMBERS.get(KeysMatchNumbers.NUMBER_SIZE).get(candidate);
+                if (size < minSize) {
+                    minSize = size;
+                    proxNum = candidate;
                 }
             }
-            return null;
+            return proxNum;
         }
 
-        @SuppressWarnings("unchecked")
+        @SuppressWarnings({ "unchecked", "rawtypes" })
         public void updateCollection(Integer num, Integer proxNum) {
             Integer senseProxNum = -1;
             Integer senseNum = -1;
@@ -304,6 +326,7 @@ public class Main {
             newSequence = (ArrayList<Integer>) streamNewSequence.collect(Collectors.toList());
             if (newSequence.size() == this.NUM) {
                 this.FINAL_ARRAY = newSequence;
+                return;
             }
             Integer newSequenceDireita = newSequence.get(newSequence.size() - 1);
             Integer newSequenceEsquerda = newSequence.get(0);
